@@ -16,7 +16,7 @@ function App() {
           <Route path = 'builder/:resumeId' element={<ResumeBuilder/>}/>
         </Route>
         <Route path='view/:resumeId' element={<Review/>}/>
-        <Route path='login' element={<Login/>}/>
+        <Route path='/login' element={<Login/>}/>
       </Routes>
     </>
   )
