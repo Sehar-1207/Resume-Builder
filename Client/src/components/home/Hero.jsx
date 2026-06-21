@@ -1,10 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
+import { useSelector } from "react-redux";
 
 const Hero = () => {
     const [menuOpen, setMenuOpen] = React.useState(false);
-
+const {user} = useSelector(state=>state.auth)
     const companiesLogo = [
         {
             logo: (
@@ -147,14 +148,19 @@ const Hero = () => {
                         <Link
                             to='/app?state=register'
                             className="hidden md:block px-6 py-2 bg-indigo-500 hover:bg-indigo-700 active:scale-95 transition-all rounded-full text-white"
+                            hidden={user}
                         >
                             Get started
                         </Link>
                         <Link
                             to='/app?state=login'
                             className="hidden md:block px-6 py-2 border border-indigo-500 active:scale-95 hover:bg-slate-50 transition-all rounded-full text-slate-700 hover:text-slate-900"
+                            hidden={user}
                         >
                             Login
+                        </Link>
+                        <Link to='/app' className='hidden md:block px-8 py-2 border border-indigo-500 active:scale-95 hover:bg-slate-50 transition-all rounded-full text-slate-700 hover:text-slate-900' hidden={!user}>
+                        Dashboard
                         </Link>
                     </div>
 

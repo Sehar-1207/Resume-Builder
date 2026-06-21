@@ -5,6 +5,8 @@ import connectDb from './config/db.js';
 import userRouter from './routes/userRoutes.js';
 import resumeRouter from './routes/resumeRoutes.js';
 import aiRouter from './routes/aiRoutes.js';
+import ai from './config/ai.js'; 
+import imagekit from './config/imagekit.js';
 dotenv.config();
 const app = express();
 

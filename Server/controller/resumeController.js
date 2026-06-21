@@ -1,6 +1,7 @@
 import Resume from "../model/resume.js";
 import imagekit from '../config/imagekit.js';
 import fs from 'fs';
+import { structuredClone } from "worker_threads";
 
 // POST: /api/resumes/create
 export const createResumes = async (req, res) => {
@@ -77,8 +78,15 @@ export const updateResume = async (req, res) => {
         const userId = req.userId;
         const { resumeId, resumeData, removeBackground } = req.body;
         
-        let resumeDataCopy = resumeData ? JSON.parse(resumeData) : {};
+        let resumeDataCopy = resumeData ? JSON.parse(JSON.stringify(resumeData)) : {};
         const image = req.file;
+
+        let resumeDataCopy;
+        if(typeof resumeData === 'string'){
+            resumeDataCopy= await JSON.parse(resumeData)
+        }else{
+            resumeDataCopy = structuredClone(resumeData)
+        }
 
         if (image) {
             const imageBufferData = fs.createReadStream(image.path);

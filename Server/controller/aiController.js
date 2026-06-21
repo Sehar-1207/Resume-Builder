@@ -1,5 +1,6 @@
 import Resume from '../model/resume.js';
-import ai from '../config/ai.js'
+import ai from '../config/ai.js';
+
 // post:/api/ai/enhance-pro-sum
 export const enhanceProfessionalSummary = async (req, res) => {
     try {
@@ -39,7 +40,7 @@ export const enhanceJobDescription = async (req, res) => {
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert in resume writing. Your task is to enhance the job description of a resume. The job description should be only in 1-2 sentences also highlighting key responsibilities and achievements. Use action verbs and quantifiable results where possible. Make it ATS-friendly. And only return text no options no anything else."
+                    content: "You are an expert in resume writing. Your task us to enhance the job description of a resume. The job description should be only in 1-2 sentences also highlighting key responsibilities and achievements. Use action verbs and quantifiable results where possible. Make it ATS-friendly. And only return text no options no anything else."
                 },
                 {
                     role: "user",
