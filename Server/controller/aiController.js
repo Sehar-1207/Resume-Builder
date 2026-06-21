@@ -3,7 +3,7 @@ import ai from '../config/ai.js'
 // post:/api/ai/enhance-pro-sum
 export const enhanceProfessionalSummary = async (req, res) => {
     try {
-        const { userContent } = req.body; // Fixed comma to semicolon
+        const { userContent } = req.body; 
         if (!userContent) {
             return res.status(400).json({ message: 'Missing required field' });
         }

@@ -9,8 +9,6 @@ const connectDb = async () => {
         mongoose.connection.on("error", (err) => {
             console.log("Mongoose connection error: " + err);
         });
-
-        // Use the variable from your .env file
         const mongodbUri = process.env.Mongoodb_URI;
 
         if (!mongodbUri) {
@@ -21,7 +19,7 @@ const connectDb = async () => {
 
     } catch (error) {
         console.error("Database connection failed:", error.message);
-        process.exit(1); // Exit process with failure
+        process.exit(1); 
     }
 }
 

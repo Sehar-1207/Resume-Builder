@@ -14,7 +14,7 @@ export const createResumes = async (req, res) => {
     }
 };
 
-// DELETE: /api/resumes/delete/:resumeId  <-- Notice the explicit path parameter
+// DELETE: /api/resumes/delete/:resumeId 
 export const deleteResume = async (req, res) => {
     try {
         const userId = req.userId;
@@ -23,7 +23,7 @@ export const deleteResume = async (req, res) => {
         const resume = await Resume.findOne({ _id: resumeId, userId });
 
         if (!resume) {
-            return res.status(404).json({ message: "Resume not found" }); // Changed 400 to 404
+            return res.status(404).json({ message: "Resume not found" }); 
         }
 
         await Resume.deleteOne({ _id: resumeId, userId });
@@ -33,7 +33,7 @@ export const deleteResume = async (req, res) => {
     }
 };
 
-// GET: /api/resumes/get/:resumeId  <-- Notice the explicit path parameter
+// GET: /api/resumes/get/:resumeId 
 export const getResumeById = async (req, res) => {
     try {
         const userId = req.userId;
@@ -45,7 +45,6 @@ export const getResumeById = async (req, res) => {
             return res.status(404).json({ message: "Resume not found" });
         }
         
-        // Converting to object to safely strip out internal Mongoose properties
         const resumeObj = resume.toObject();
         delete resumeObj.__v;
         delete resumeObj.createdAt;
@@ -61,7 +60,6 @@ export const getResumeById = async (req, res) => {
 export const getPublicResumeById = async (req, res) => {
     try {
         const { resumeId } = req.params;
-        // Fixed: Ensure it searches for both the explicit ID AND confirms it is public
         const resume = await Resume.findOne({ _id: resumeId, public: true });
 
         if (!resume) {
@@ -93,19 +91,15 @@ export const updateResume = async (req, res) => {
                 }
             });
 
-            // Fixed: Safely ensuring personal_info structural path exists
             if (!resumeDataCopy.personal_info) {
                 resumeDataCopy.personal_info = {};
             }
             resumeDataCopy.personal_info.image = response.url;
-
-            // Cleanup local temp file storage after upload completes successfully
             if (fs.existsSync(image.path)) {
                 fs.unlinkSync(image.path);
             }
         }
 
-        // Fixed: Changed findByIdAndUpdate to findOneAndUpdate to securely query multi-field constraints (userId + resumeId)
         const resume = await Resume.findOneAndUpdate(
             { _id: resumeId, userId }, 
             resumeDataCopy, 
@@ -118,7 +112,6 @@ export const updateResume = async (req, res) => {
 
         return res.status(200).json({ message: "Saved successfully", resume });
     } catch (error) {
-        // Cleanup local temp file if processing crashed mid-flight
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }

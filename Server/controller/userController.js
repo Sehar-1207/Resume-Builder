@@ -4,7 +4,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const generateToken = (userId) => {
-    // Note: Ensure process.env.Jwt_Secret matches your actual .env casing (usually JWT_SECRET)
     const token = jwt.sign({ userId }, process.env.Jwt_Secret, {
         expiresIn: "7d",
     });
@@ -37,7 +36,7 @@ export const registerUser = async (req, res) => {
         newUser.password = undefined;
         
         return res
-            .status(201) // Changed to 201 since a resource is created here
+            .status(201) 
             .json({ message: "User created successfully", token, user: newUser });
     } catch (error) {
         return res.status(400).json({ message: error.message });
@@ -59,18 +58,16 @@ export const logInUser = async (req, res) => {
             return res.status(400).json({ message: "Invalid email or password" });
         }
         
-        // Fixed: Added 'await' because password comparison is asynchronous
         const isPasswordCorrect = await user.comparePassword(password);
         if (!isPasswordCorrect) {
             return res.status(400).json({ message: "Invalid email or password" });
         }
 
-        // Fixed: Changed newUser._id to user._id
         const token = generateToken(user._id);
         user.password = undefined;
         
         return res
-            .status(200) // Changed from 201 to 200 OK
+            .status(200) 
             .json({ message: "User logged in successfully", token, user });
     } catch (error) {
         return res.status(400).json({ message: error.message });
@@ -83,7 +80,7 @@ export const getUserById = async (req, res) => {
         const userId = req.userId;
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ message: "User not found" }); // Changed to 404
+            return res.status(404).json({ message: "User not found" });
         }
 
         user.password = undefined;
