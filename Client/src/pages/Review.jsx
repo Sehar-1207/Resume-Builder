@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { dummyResumeData } from "../assets/assets.js";
-import ResumePreview from "../components/ResumePreview.jsx";
-import Loader from "../components/Loader.jsx";
+import ResumePreview from "../components/ResumePreview";
+import Loader from "../components/Loader";
 import { ArrowLeftIcon } from "lucide-react";
+import api from "../configs/api"; 
 
 function Review() {
   const { resumeId } = useParams();
@@ -11,13 +11,16 @@ function Review() {
   const [resumeData, setResumeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadResume = () => {
-    const resume = dummyResumeData.find(
-      (resume) => resume._id === resumeId
-    );
+  const loadResume = async () => {
+    try {
+      const { data } = await api.get(`/api/resumes/public/${resumeId}`);
 
-    setResumeData(resume || null);
-    setIsLoading(false);
+      setResumeData(data.resume);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -37,9 +40,7 @@ function Review() {
 
         <Link
           to="/app"
-          className="mt-6 bg-indigo-500 hover:bg-indigo-600 text-white 
-          rounded-full px-6 h-10 flex items-center 
-          ring-1 ring-indigo-400 transition-colors"
+          className="mt-6 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full px-6 h-10 flex items-center ring-1 ring-indigo-400 transition-colors"
         >
           <ArrowLeftIcon className="mr-2 size-4" />
           Go to home page

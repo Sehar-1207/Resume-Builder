@@ -19,7 +19,7 @@ function Dashboard() {
   const { user, token } = useSelector(state => state.auth);
   const [isLoading, setIsLoading] = useState(false);
   const [allResumes, setAllResumes] = useState([]);
-  const [showCreateResume, setShowCreateResume] = useState(false); // Fixed state setter naming
+  const [showCreateResume, setShowCreateResume] = useState(false);
   const [showUploadResume, setUploadResumes] = useState(false);
   const [title, setTitle] = useState('');
   const [resume, setResume] = useState(null);
@@ -32,44 +32,42 @@ function Dashboard() {
       const { data } = await api.post('/api/resumes/create', { title }, { headers: { Authorization: token } });
       setAllResumes([...allResumes, data.resume]);
       setTitle('');
-      setShowCreateResume(false); // This now maps correctly to the state setter
+      setShowCreateResume(false);
       navigate(`/app/builder/${data.resume._id}`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error.message);
     }
   };
 
-const uploadResume = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  try {
-    const resumeText = await pdfToText(resume);
-    
-    // Kept your original token configuration since the backend requires raw strings
-    const { data } = await api.post(
-      '/api/ai/uploadResume', 
-      { title, resumeText }, 
-      { headers: { Authorization: token } }
-    );
-    
-    setTitle('');
-    setResume(null);
-    setUploadResumes(false);
-    
-    // FIX: Navigates using data.resumeId directly to match your backend response structure
-    if (data?.resumeId) {
-      navigate(`/app/builder/${data.resumeId}`);
-    } else if (data?.resume?._id) {
-      navigate(`/app/builder/${data.resume._id}`);
-    } else {
-      toast.error("Resume processed, but navigation identifier was missing.");
+  const uploadResume = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const resumeText = await pdfToText(resume);
+      const { data } = await api.post(
+        '/api/ai/uploadResume',
+        { title, resumeText },
+        { headers: { Authorization: token } }
+      );
+
+      setTitle('');
+      setResume(null);
+      setUploadResumes(false);
+
+      // Navigates using data.resumeId directly to match your backend response structure
+      if (data?.resumeId) {
+        navigate(`/app/builder/${data.resumeId}`);
+      } else if (data?.resume?._id) {
+        navigate(`/app/builder/${data.resume._id}`);
+      } else {
+        toast.error("Resume processed, but navigation identifier was missing.");
+      }
+
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message);
     }
-    
-  } catch (error) {
-    toast.error(error?.response?.data?.message || error.message);
-  }
-  setIsLoading(false);
-};
+    setIsLoading(false);
+  };
 
   const editTitle = async (e) => {
     try {
@@ -85,11 +83,10 @@ const uploadResume = async (e) => {
   };
 
   const loadAllResumes = async () => {
-  try {
-    const { data } = await api.get('/api/users/resumes', { headers: { Authorization: token } });
-    // Change data.resume to data.resumes if your backend sends a plural array
-    setAllResumes(data.resumes || data.resume || []); 
-  }  catch (error) {
+    try {
+      const { data } = await api.get('/api/users/resumes', { headers: { Authorization: token } });
+      setAllResumes(data.resumes || data.resume || []);
+    } catch (error) {
       toast.error(error?.response?.data?.message || error.message);
     }
   };
@@ -109,14 +106,14 @@ const uploadResume = async (e) => {
 
   const colors = ["#9333ea", "#d97706", "#dc2626", "#0284c7", "#16a34a"];
 
-// Inside Dashboard.jsx
-useEffect(() => {
-  if (token) {
-    loadAllResumes();
-  } else {
-    console.log("No token available in Redux state yet!");
-  }
-}, [token]);
+
+  useEffect(() => {
+    if (token) {
+      loadAllResumes();
+    } else {
+      console.log("No token available in Redux state yet!");
+    }
+  }, [token]);
 
   return (
     <div>
@@ -128,7 +125,7 @@ useEffect(() => {
         <div className="flex gap-4">
           <button
             type="button"
-            onClick={() => setShowCreateResume(true)} // Updated function call
+            onClick={() => setShowCreateResume(true)} 
             className="w-full bg-white sm:max-w-36 h-48 flex flex-col items-center justify-center rounded-lg gap-2 text-slate-600 border border-dashed border-slate-300 group hover:border-indigo-500 hover:shadow-lg transition-all duration-300 cursor-pointer"
           >
             <PlusIcon className="size-11 transition-all duration-300 p-2.5 bg-gradient-to-br from-indigo-300 to-indigo-500 text-white rounded-full" />
@@ -190,9 +187,9 @@ useEffect(() => {
                   className="absolute top-1 right-1 group-hover:flex items-center hidden gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <TrashIcon 
-                    className="size-7 p-1.5 hover:bg-white/50 rounded hover:text-red-600 text-slate-500 transition-colors cursor-pointer" 
-                    onClick={() => deleteResume(resume._id)} 
+                  <TrashIcon
+                    className="size-7 p-1.5 hover:bg-white/50 rounded hover:text-red-600 text-slate-500 transition-colors cursor-pointer"
+                    onClick={() => deleteResume(resume._id)}
                   />
                   <PencilIcon
                     className="size-7 p-1.5 hover:bg-white/50 rounded hover:text-slate-700 text-slate-500 transition-colors cursor-pointer"

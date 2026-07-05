@@ -16,7 +16,6 @@ const PersonalInfoForm = ({
   setRemoveBackground,
 }) => {
   const handleChange = (field, value) => {
-    // Corrected to use the prop 'onChange'
     onChange({ ...data, [field]: value });
   };
 

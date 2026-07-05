@@ -17,7 +17,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from 'react-redux';
-import { toast } from "react-hot-toast"; // Fixed: Added missing toast import
+import { toast } from "react-hot-toast"; 
 
 import PersonalInfoForm from "../components/PersonalInfoForm";
 import ResumePreview from "../components/ResumePreview";
@@ -63,13 +63,12 @@ function ResumeBuilder() {
 
   const activeSection = sections[activeSectionIndex];
 
-  // Fixed: Added async keyword here
   const loadExistingResume = async () => {
     if (!resumeId) return;
     try {
       const { data } = await api.get('/api/resumes/get/' + resumeId, { headers: { Authorization: token } });
       if (data.resume) {
-        setResumeData(data.resume); // Fixed: corrected "daat.resume" typo
+        setResumeData(data.resume);
         document.title = data.resume.title;
       }
     } catch (error) {
@@ -81,17 +80,12 @@ function ResumeBuilder() {
     loadExistingResume();
   }, [resumeId]);
 
-  /* -----------------------------
-      Toggle Public / Private
-  ------------------------------ */
-
-  // Fixed: Added async keyword here
   const resumeVisibility = async () => {
     try {
       const formData = new FormData();
       formData.append("resumeId", resumeId);
       formData.append("resumeData", JSON.stringify({ public: !resumeData.public }));
-      
+
       const { data } = await api.put('/api/resumes/update', formData, { headers: { Authorization: token } });
       setResumeData({ ...resumeData, public: !resumeData.public });
       toast.success(data.message);
@@ -99,10 +93,6 @@ function ResumeBuilder() {
       toast.error("Error in saving resume");
     }
   };
-
-  /* -----------------------------
-      Share Resume
-  ------------------------------ */
 
   const handleShare = () => {
     const frontendUrl = window.location.origin;
@@ -119,56 +109,52 @@ function ResumeBuilder() {
     }
   };
 
-  /* -----------------------------
-      Download Resume
-  ------------------------------ */
-
   const DownloadResume = () => {
     window.print();
   };
 
- const saveResume = async () => {
-  try {
-    let updatedResumeData = structuredClone(resumeData);
-    if (typeof resumeData.personal_info.image === 'object') {
-      delete updatedResumeData.personal_info.image;
-    }
-
-    const formData = new FormData();
-    formData.append("resumeId", resumeId);
-    
-    // 1. Loop through keys and append them individually so the backend receives flat fields
-    Object.keys(updatedResumeData).forEach((key) => {
-      if (typeof updatedResumeData[key] === "object") {
-        // Arrays and Objects must still be stringified, but are mapped to their true key names
-        formData.append(key, JSON.stringify(updatedResumeData[key]));
-      } else {
-        formData.append(key, updatedResumeData[key]);
+  const saveResume = async () => {
+    try {
+      let updatedResumeData = structuredClone(resumeData);
+      if (typeof resumeData.personal_info.image === 'object') {
+        delete updatedResumeData.personal_info.image;
       }
-    });
-    
-    if (removeBackground) formData.append("removeBackground", "yes");
 
-    if (typeof resumeData.personal_info.image === 'object') {
-      formData.append("image", resumeData.personal_info.image);
+      const formData = new FormData();
+      formData.append("resumeId", resumeId);
+
+      // Loop through keys and append them individually
+      Object.keys(updatedResumeData).forEach((key) => {
+        // FIX: Ignore the root empty string _id field to prevent Mongoose CastErrors
+        if (key === "_id" && !updatedResumeData[key]) return;
+
+        if (typeof updatedResumeData[key] === "object") {
+          formData.append(key, JSON.stringify(updatedResumeData[key]));
+        } else {
+          formData.append(key, updatedResumeData[key]);
+        }
+      });
+
+      if (removeBackground) formData.append("removeBackground", "yes");
+
+      if (typeof resumeData.personal_info.image === 'object') {
+        formData.append("image", resumeData.personal_info.image);
+      }
+
+      const { data } = await api.put('/api/resumes/update', formData, {
+        headers: {
+          Authorization: token,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setResumeData(data.resume);
+      toast.success(data.message);
+    } catch (error) {
+      console.error("Server validation response error:", error.response?.data);
+      toast.error(error.response?.data?.message || error.message);
     }
-
-    // 2. Add an explicit multipart header wrapper
-    const { data } = await api.put('/api/resumes/update', formData, { 
-      headers: { 
-        Authorization: token,
-        'Content-Type': 'multipart/form-data'
-      } 
-    });
-    
-    setResumeData(data.resume);
-    toast.success(data.message);
-  } catch (error) {
-    
-    console.error("Server validation response error:", error.response?.data);
-    toast.error(error.response?.data?.message || error.message);
-  }
-};
+  };
 
   return (
     <div>
@@ -324,8 +310,8 @@ function ResumeBuilder() {
                 )}
               </div>
 
-              <button 
-                onClick={saveResume} 
+              <button
+                onClick={saveResume}
                 className="bg-gradient-to-br from-indigo-200 to-indigo-300 text-indigo-700 hover:ring rounded-md px-6 py-2 mt-6 text-sm"
               >
                 Save Changes
@@ -348,7 +334,7 @@ function ResumeBuilder() {
 
               <button
                 onClick={resumeVisibility}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition"
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
               >
                 {resumeData.public ? (
                   <Eye size={16} />

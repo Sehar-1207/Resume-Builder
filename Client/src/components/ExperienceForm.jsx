@@ -1,12 +1,13 @@
 import { Briefcase, Loader2, Plus, SparkleIcon, Trash2 } from "lucide-react";
-import React from "react";
+import React, { useState } from "react"; 
 import { useSelector } from "react-redux";
 import api from '../configs/api.js';
-import {toast} from 'react-hot-toast'
+import { toast } from 'react-hot-toast';
 
 const ExperienceForm = ({ data, onChange }) => {
-  const {token} = useSelector(state=>state.auth);
-  const [generatingIndex, setGeneratingIndex]= useState(-1);
+  const { token } = useSelector(state => state.auth);
+  const [generatingIndex, setGeneratingIndex] = useState(-1);
+
   const addExperience = () => {
     const newExperience = {
       company: "",
@@ -24,21 +25,20 @@ const ExperienceForm = ({ data, onChange }) => {
     onChange(update);
   };
 
-  const generatingDescription = async(params)=>{
-    setGeneratingIndex(index)
-    const experience=data[index]
-    const prompt =`enhance this job description ${experience.description}for the position of${experience.position} at ${experience.company}`
+  const generatingDescription = async (index) => {
+    setGeneratingIndex(index);
+    const experience = data[index];
+    const prompt = `enhance this job description ${experience.description} for the position of ${experience.position} at ${experience.company}`;
 
     try {
-      const {data} = await api.post('api/ai/enhance-job-desc',{userContent:prompt}, {headers:{Authorization:token}})
-      UpdateExperience(index,'description',data.enhancedContent)
+      const { data: resData } = await api.post('/api/ai/enhance-job-desc', { userContent: prompt }, { headers: { Authorization: token } });
+      UpdateExperience(index, 'description', resData.enhancedContent);
     } catch (error) {
-      toast.error(error.message)
-    }finally{
-      setGeneratingIndex(-1)
+      toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setGeneratingIndex(-1);
     }
-
-  }
+  };
 
   const UpdateExperience = (index, field, value) => {
     const update = [...data];
@@ -80,10 +80,10 @@ const ExperienceForm = ({ data, onChange }) => {
           {data.map((experience, index) => (
             <div
               key={index}
-              className="p-4 border border-gray-200 rounded-lg space-y-3"
+              className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white shadow-sm"
             >
               <div className="flex justify-between items-start">
-                <h4>Experience #{index + 1}</h4>
+                <h4 className="font-medium text-slate-700">Experience #{index + 1}</h4>
 
                 <button
                   className="text-red-500 hover:text-red-700 transition-colors"
@@ -97,7 +97,7 @@ const ExperienceForm = ({ data, onChange }) => {
                 <input
                   type="text"
                   placeholder="Company Name"
-                  className="px-3 py-2 text-sm rounded-lg"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500"
                   value={experience.company || ""}
                   onChange={(e) =>
                     UpdateExperience(index, "company", e.target.value)
@@ -107,7 +107,7 @@ const ExperienceForm = ({ data, onChange }) => {
                 <input
                   type="text"
                   placeholder="Job Title"
-                  className="px-3 py-2 text-sm rounded-lg"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500"
                   value={experience.position || ""}
                   onChange={(e) =>
                     UpdateExperience(index, "position", e.target.value)
@@ -116,7 +116,7 @@ const ExperienceForm = ({ data, onChange }) => {
 
                 <input
                   type="month"
-                  className="px-3 py-2 text-sm rounded-lg"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500"
                   value={experience.start_date || ""}
                   onChange={(e) =>
                     UpdateExperience(index, "start_date", e.target.value)
@@ -125,7 +125,7 @@ const ExperienceForm = ({ data, onChange }) => {
 
                 <input
                   type="month"
-                  className="px-3 py-2 text-sm rounded-lg disabled:bg-gray-100"
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
                   value={experience.end_date || ""}
                   disabled={experience.is_current}
                   onChange={(e) =>
@@ -134,20 +134,18 @@ const ExperienceForm = ({ data, onChange }) => {
                 />
               </div>
 
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 w-fit cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={experience.is_current || false}
-                  onChange={(e) =>
-                    UpdateExperience(
-                      index,
-                      "is_current",
-                      e.target.checked
-                    )
-                  }
+                  onChange={(e) => {
+                    UpdateExperience(index, "is_current", e.target.checked);
+                    if (e.target.checked) {
+                      UpdateExperience(index, "end_date", ""); // Clears end date if current
+                    }
+                  }}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-
                 <span className="text-sm text-gray-700">
                   Currently working here
                 </span>
@@ -159,24 +157,28 @@ const ExperienceForm = ({ data, onChange }) => {
                     Job Description
                   </label>
 
-                  <button onClick={()=>{generatingDescription(index)}}  disabled={generatingIndex ===index || !experience.position || !experience.company} className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:opacity-50">
-                    {generatingIndex === index ? (<Loader2 className='w-3 h-3 animate-spin' />):(<SparkleIcon className="w-3 h-3" />)}
-                    
+                  <button 
+                    onClick={() => generatingDescription(index)}  
+                    disabled={generatingIndex === index || !experience.position || !experience.company} 
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
+                  >
+                    {generatingIndex === index ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <SparkleIcon className="w-3 h-3" />
+                    )}
                     Enhance with AI
                   </button>
                 </div>
 
                 <textarea
-                  className="w-full text-sm px-3 py-2 rounded-lg resize-none"
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-300 outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                   rows={4}
                   value={experience.description || ""}
                   onChange={(e) =>
-                    UpdateExperience(
-                      index,
-                      "description",
-                      e.target.value
-                    )
+                    UpdateExperience(index, "description", e.target.value)
                   }
+                  placeholder="Describe your responsibilities, impact, and engineering achievements..."
                 />
               </div>
             </div>
