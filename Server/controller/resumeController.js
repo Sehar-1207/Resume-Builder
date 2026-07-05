@@ -78,6 +78,23 @@ export const updateResume = async (req, res) => {
         const { resumeId, removeBackground } = req.body;
         const image = req.file;
 
+        // 1. ISOLATION CHECK: If this is purely a visibility toggle
+        if (Object.keys(req.body).length === 2 && req.body.public !== undefined) {
+            const isPublicValue = req.body.public === "true" || req.body.public === true;
+            
+            const updatedResume = await Resume.findOneAndUpdate(
+                { _id: resumeId, userId },
+                { $set: { public: isPublicValue } },
+                { new: true }
+            );
+
+            if (!updatedResume) {
+                return res.status(404).json({ message: "Resume not found or unauthorized" });
+            }
+            return res.status(200).json({ message: "Visibility updated successfully", resume: updatedResume });
+        }
+
+        // 2. STANDARD RUN: Full resume field updating
         let resumeDataCopy = {};
         
         Object.keys(req.body).forEach((key) => {
@@ -92,7 +109,12 @@ export const updateResume = async (req, res) => {
             }
         });
 
-        const subArrays = ['experience', 'education', 'project', 'skills'];
+        // Bridge project/projects schema mismatch defensively
+        if (resumeDataCopy.project && !resumeDataCopy.projects) {
+            resumeDataCopy.projects = resumeDataCopy.project;
+        }
+
+        const subArrays = ['experience', 'education', 'projects', 'project', 'skills'];
         subArrays.forEach(arrayKey => {
             if (Array.isArray(resumeDataCopy[arrayKey])) {
                 resumeDataCopy[arrayKey] = resumeDataCopy[arrayKey].map(item => {
@@ -145,6 +167,33 @@ export const updateResume = async (req, res) => {
             fs.unlinkSync(req.file.path);
         }
         console.error("Update controller error:", error);
+        return res.status(400).json({ message: error.message });
+    }
+};
+// PUT: /api/resumes/update-visibility
+export const toggleResumeVisibility = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { resumeId, public: isPublic } = req.body;
+
+        // Force convert incoming value to real boolean
+        const visibilityValue = isPublic === "true" || isPublic === true;
+
+        const resume = await Resume.findOneAndUpdate(
+            { _id: resumeId, userId },
+            { $set: { public: visibilityValue } },
+            { returnDocument: 'after' } // Clean Mongoose update syntax
+        );
+
+        if (!resume) {
+            return res.status(404).json({ message: "Resume not found or unauthorized" });
+        }
+
+        return res.status(200).json({ 
+            message: `Resume status set to ${resume.public ? 'Public' : 'Private'}`, 
+            resume 
+        });
+    } catch (error) {
         return res.status(400).json({ message: error.message });
     }
 };

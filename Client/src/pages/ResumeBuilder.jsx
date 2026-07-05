@@ -14,7 +14,7 @@ import {
   Download,
 } from "lucide-react";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import { toast } from "react-hot-toast"; 
@@ -34,6 +34,8 @@ import api from '../configs/api';
 function ResumeBuilder() {
   const { resumeId } = useParams();
   const { token } = useSelector(state => state.auth);
+  
+  const resumePrintRef = useRef(null); 
 
   const [resumeData, setResumeData] = useState({
     _id: "",
@@ -68,8 +70,14 @@ function ResumeBuilder() {
     try {
       const { data } = await api.get('/api/resumes/get/' + resumeId, { headers: { Authorization: token } });
       if (data.resume) {
-        setResumeData(data.resume);
-        document.title = data.resume.title;
+        // Safe mapping to ensure project state bridges plural differences safely
+        const normalizedData = {
+          ...data.resume,
+          project: data.resume.project || data.resume.projects || [],
+          projects: data.resume.projects || data.resume.project || []
+        };
+        setResumeData(normalizedData);
+        document.title = normalizedData.title || "Resume Builder";
       }
     } catch (error) {
       console.log(error.message);
@@ -82,15 +90,30 @@ function ResumeBuilder() {
 
   const resumeVisibility = async () => {
     try {
-      const formData = new FormData();
-      formData.append("resumeId", resumeId);
-      formData.append("resumeData", JSON.stringify({ public: !resumeData.public }));
+      const nextVisibilityState = !resumeData.public;
+      
+      const { data } = await api.put('/api/resumes/update-visibility', {
+        resumeId,
+        public: nextVisibilityState
+      }, { 
+        headers: { 
+          Authorization: token,
+          'Content-Type': 'application/json' 
+        } 
+      });
 
-      const { data } = await api.put('/api/resumes/update', formData, { headers: { Authorization: token } });
-      setResumeData({ ...resumeData, public: !resumeData.public });
-      toast.success(data.message);
+      if (data.resume) {
+        setResumeData((prev) => ({
+          ...prev,
+          ...data.resume,
+          project: data.resume.project || data.resume.projects || [],
+          projects: data.resume.projects || data.resume.project || []
+        }));
+        toast.success(data.message || "Visibility updated successfully");
+      }
     } catch (error) {
-      toast.error("Error in saving resume");
+      console.error("Visibility toggle error:", error);
+      toast.error(error.response?.data?.message || "Error updating visibility");
     }
   };
 
@@ -100,7 +123,7 @@ function ResumeBuilder() {
 
     if (navigator.share) {
       navigator.share({
-        title: "My Resume",
+        title: resumeData.title || "My Resume",
         url: resumeUrl,
       });
     } else {
@@ -109,23 +132,72 @@ function ResumeBuilder() {
     }
   };
 
-  const DownloadResume = () => {
-    window.print();
+  // FIXED: Implemented the missing local HTML printing engine 
+  const handleDownload = () => {
+    const targetElement = resumePrintRef.current;
+    if (!targetElement) return;
+
+    const styleSheets = Array.from(document.styleSheets);
+    let cssStyles = "";
+    try {
+      styleSheets.forEach((sheet) => {
+        const rules = Array.from(sheet.cssRules || sheet.rules);
+        rules.forEach((rule) => {
+          cssStyles += rule.cssText;
+        });
+      });
+    } catch (e) {
+      cssStyles = ""; 
+    }
+
+    const completeHtmlDoc = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${resumeData.title || "Resume"}</title>
+          <style>
+            ${cssStyles}
+            body { background: white; margin: 0; padding: 20px; }
+          </style>
+        </head>
+        <body>
+          <div>${targetElement.innerHTML}</div>
+        </body>
+      </html>
+    `;
+
+    const fileBlob = new Blob([completeHtmlDoc], { type: "text/html" });
+    const localDownloadUrl = URL.createObjectURL(fileBlob);
+    
+    const temporaryLink = document.createElement("a");
+    temporaryLink.href = localDownloadUrl;
+    temporaryLink.download = `${resumeData.title || "Resume"}.html`;
+    
+    document.body.appendChild(temporaryLink);
+    temporaryLink.click();
+    
+    document.body.removeChild(temporaryLink);
+    URL.revokeObjectURL(localDownloadUrl);
+    
+    toast.success("File downloaded successfully!");
   };
 
   const saveResume = async () => {
     try {
       let updatedResumeData = structuredClone(resumeData);
-      if (typeof resumeData.personal_info.image === 'object') {
+      if (typeof resumeData.personal_info?.image === 'object') {
         delete updatedResumeData.personal_info.image;
+      }
+
+      // Sync plural/singular arrays explicitly before sending
+      if (updatedResumeData.project) {
+        updatedResumeData.projects = updatedResumeData.project;
       }
 
       const formData = new FormData();
       formData.append("resumeId", resumeId);
 
-      // Loop through keys and append them individually
       Object.keys(updatedResumeData).forEach((key) => {
-        // FIX: Ignore the root empty string _id field to prevent Mongoose CastErrors
         if (key === "_id" && !updatedResumeData[key]) return;
 
         if (typeof updatedResumeData[key] === "object") {
@@ -137,7 +209,7 @@ function ResumeBuilder() {
 
       if (removeBackground) formData.append("removeBackground", "yes");
 
-      if (typeof resumeData.personal_info.image === 'object') {
+      if (typeof resumeData.personal_info?.image === 'object' && resumeData.personal_info.image !== null) {
         formData.append("image", resumeData.personal_info.image);
       }
 
@@ -148,8 +220,15 @@ function ResumeBuilder() {
         }
       });
 
-      setResumeData(data.resume);
-      toast.success(data.message);
+      if (data.resume) {
+        setResumeData((prev) => ({
+          ...prev,
+          ...data.resume,
+          project: data.resume.project || data.resume.projects || [],
+          projects: data.resume.projects || data.resume.project || []
+        }));
+      }
+      toast.success(data.message || "Changes saved successfully");
     } catch (error) {
       console.error("Server validation response error:", error.response?.data);
       toast.error(error.response?.data?.message || error.message);
@@ -182,7 +261,7 @@ function ResumeBuilder() {
                 }}
               />
 
-              {/* header */}
+              {/* Header */}
               <div className="flex justify-between items-center mb-6 border-b border-gray-300 py-1">
                 <div className="flex items-center gap-2">
                   <TemplateSelector
@@ -263,7 +342,7 @@ function ResumeBuilder() {
 
                 {activeSection.id === "experience" && (
                   <ExperienceForm
-                    data={resumeData.experience}
+                    data={resumeData.experience || []}
                     onChange={(data) =>
                       setResumeData((prev) => ({
                         ...prev,
@@ -275,7 +354,7 @@ function ResumeBuilder() {
 
                 {activeSection.id === "education" && (
                   <EducationForm
-                    data={resumeData.education}
+                    data={resumeData.education || []}
                     onChange={(data) =>
                       setResumeData((prev) => ({
                         ...prev,
@@ -287,7 +366,7 @@ function ResumeBuilder() {
 
                 {activeSection.id === "project" && (
                   <ProjectForm
-                    data={resumeData.project}
+                    data={resumeData.project || []}
                     onChange={(data) =>
                       setResumeData((prev) => ({
                         ...prev,
@@ -299,7 +378,7 @@ function ResumeBuilder() {
 
                 {activeSection.id === "skills" && (
                   <SkillsForm
-                    data={resumeData.skills}
+                    data={resumeData.skills || []}
                     onChange={(data) =>
                       setResumeData((prev) => ({
                         ...prev,
@@ -345,7 +424,7 @@ function ResumeBuilder() {
               </button>
 
               <button
-                onClick={DownloadResume}
+                onClick={handleDownload}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition"
               >
                 <Download size={16} />
@@ -353,11 +432,13 @@ function ResumeBuilder() {
               </button>
             </div>
 
-            <ResumePreview
-              data={resumeData}
-              template={resumeData.template}
-              accentColor={resumeData.accent_color}
-            />
+            <div ref={resumePrintRef}>
+              <ResumePreview
+                data={resumeData}
+                template={resumeData.template}
+                accentColor={resumeData.accent_color}
+              />
+            </div>
           </div>
         </div>
       </div>
